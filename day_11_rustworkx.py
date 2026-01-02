@@ -1,5 +1,6 @@
 import rustworkx as rx
-
+from collections import defaultdict
+from functools import cache
 
 test_input = """aaa: you hhh
 you: bbb ccc
@@ -688,10 +689,36 @@ print("Part 1, number of ways between \"you\" and \"out\": ", num_of_ways)
 
 ###Part 2
 
-num_svr_to_dac = 0
+def solve_part2(graph, node_lut):
+    
+    idx_start = node_lut['svr']
+    idx_end   = node_lut['out']
+    idx_dac   = node_lut['dac']
+    idx_fft   = node_lut['fft']
 
-for _ in rx.all_simple_paths(G, node_lut["svr"], node_lut["dac"]):
-    num_svr_to_dac += 1
-#still too slow
+    @cache
+    def count_paths(u_idx, target_idx):
+        if u_idx == target_idx:
+            return 1
+        
+        total = 0
+        for v_idx in graph.successor_indices(u_idx):
+            total += count_paths(v_idx, target_idx)
+        return total
 
-print(num_svr_to_dac)
+    # 1. Route: svr -> dac -> fft -> out
+    route_1 = (count_paths(idx_start, idx_dac) * 
+               count_paths(idx_dac, idx_fft) * 
+               count_paths(idx_fft, idx_end))
+
+    # 2. Route: svr -> fft -> dac -> out
+    route_2 = (count_paths(idx_start, idx_fft) * 
+               count_paths(idx_fft, idx_dac) * 
+               count_paths(idx_dac, idx_end))
+
+    return route_1 + route_2
+
+
+result = solve_part2(G, node_lut)
+
+print(result)
